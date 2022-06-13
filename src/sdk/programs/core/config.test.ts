@@ -8,6 +8,7 @@ export const config = {
     metaplex: 'Fr6ufqFxV3AuYEPYDvRjR2ghaCg6RyzvU3k9pC5z6x94',
     vault: '4CJLCFj8dhHmAC3TJizaN2BqkzW6hDeviZwH9qsSBjwH',
     packs: 'BNRmGgciUJuyznkYHnmitA9an1BcDDiU9JmjEQwvBYVR',
+    auctionHouse: 'hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk',
     // External
     memo: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
     token: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
