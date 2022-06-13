@@ -31,4 +31,36 @@ export const STORE_OWNER = new PublicKey(
 );
 
 
+export const AUCTION_HOUSE_PROGRAM_ID = new PublicKey(
+  "hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk"
+);
+
+export const AUCTION_HOUSE = new PublicKey(
+  "FkbeEU3kfxQ2tjRiJS9nBA653ZRCdxZqDyhFZSanebs3"
+);
+
+export const AUCTION_HOUSE_FEE_PAYER = new PublicKey(
+  "2vpbU7niE65uYGqPZB1TccsQJ5J6d2NmNzh29JJ47NHk"
+);
+
+export const AUCTION_HOUSE_TREASURY = new PublicKey(
+  "EhjPUbuFtw7bKNNrZpNjzr4PTZX2eA6imaNxY1t4Ho4e"
+);
+
+export const AUCTION_HOUSE_AUTHORITY = new PublicKey(
+  "8EYsRZoEzUkuzBLGweCmACuwbzdFJ1Bf6kSKyCGhQCyZ"
+);
+
+export const WRAPPED_SOL_MINT = new PublicKey(
+  'So11111111111111111111111111111111111111112',
+);
+
+export const TOKEN_PROGRAM_ID = new PublicKey(
+  'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+);
+
+export const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new PublicKey(
+  'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
+);
+
 export const MAX_RETRIES = 15;

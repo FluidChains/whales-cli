@@ -39,12 +39,12 @@ export const sellNftTransaction = async (
     const treasuryMint = WRAPPED_SOL_MINT;
     const tokenMint = new PublicKey(nft.mint);
     const associatedTokenAccount = tokenAccount;
-    console.log(`${formatteDate()} auctionHouse: ${auctionHouse.toBase58()}`);
-    console.log(`${formatteDate()} wallet.publicKey: ${wallet.publicKey.toBase58()}`);
-    console.log(`${formatteDate()} associatedTokenAccount: ${associatedTokenAccount.toBase58()}`);
-    console.log(`${formatteDate()} treasuryMint: ${treasuryMint.toBase58()}`);
-    console.log(`${formatteDate()} tokenMint: ${tokenMint.toBase58()}`);
-    console.log(`${formatteDate()} buyPrice: ${buyerPrice} `);
+    console.log(`${formatteDate()}: auctionHouse: ${auctionHouse.toBase58()}`);
+    console.log(`${formatteDate()}: wallet.publicKey: ${wallet.publicKey.toBase58()}`);
+    console.log(`${formatteDate()}: associatedTokenAccount: ${associatedTokenAccount.toBase58()}`);
+    console.log(`${formatteDate()}: treasuryMint: ${treasuryMint.toBase58()}`);
+    console.log(`${formatteDate()}: tokenMint: ${tokenMint.toBase58()}`);
+    console.log(`${formatteDate()}: buyPrice: ${buyerPrice} `);
 
     const [sellerTradeState, tradeStateBump] =
         await auctionHouseProgram.findTradeStateAddress(
@@ -112,7 +112,7 @@ export const sellNftTransaction = async (
             receiptBump,
         }
     );
-    console.log(`${formatteDate()} Receipt: ${receipt.toBase58()}`);
+    console.log(`${formatteDate()}: Receipt: ${receipt.toBase58()}`);
 
     tx.add(sellInstruction).add(printListingReceiptInstruction);
 
@@ -122,7 +122,7 @@ export const sellNftTransaction = async (
     try {
         await wallet.signTransaction(tx);
         const combinedTxResponse = await confirmTransactions( connection, tx);
-        console.log(`${formatteDate()} combinedTxResponse: ${combinedTxResponse}`);
+        console.log(`${formatteDate()}: TransactionId: ${combinedTxResponse}`);
     } catch (e) {
         console.error(e)
         return;

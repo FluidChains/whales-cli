@@ -4,9 +4,9 @@ import {
 } from './ywhales';
 
 import fs from 'mz/fs';
-import { batchFile, STORE_OWNER, WALLET_PACKAGE } from './ids';
+import { batchFile, STORE_OWNER, WALLET_PACKAGE, WRAPPED_SOL_MINT } from './ids';
 import { AuctionPreStage, BatchMint, MintedResponse } from './types';
-import { confirmTransactions, formatteDate, getPayer, retrieveMetadata, sleep } from './utils';
+import { confirmTransactions, formatteDate, getAtaForMint, getPayer, retrieveMetadata, sleep } from './utils';
 import { Connection } from './sdk/actions/Connection';
 import { Transaction } from './sdk/programs/core';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, MintLayout, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -16,6 +16,7 @@ import { NodeWallet } from './sdk/actions/wallet';
 import base58 from 'bs58';
 import { preAuctionBatch, startAuctionBatch, validateAuctionBatch } from './services/auction.service';
 import moment from 'moment';
+import { sellNftTransaction } from './sdk/actions/auction-house/sellNft';
 
 
 
@@ -113,83 +114,34 @@ async function main() {
   console.log("===================================")
   console.log(`========${formatteDate()}: ==========`)
 
-  // Get Only Rares
-  const raritys = mintedInfo.filter(a => {
-    return a.type != '1'
-  });
 
-  console.log("===================================")
-  console.log("=====STARTING TO MINT ONLY RARES===")
-  console.log("===================================")
-  console.log(`${formatteDate()}:  Raritys to sent: ${raritys.length}`)
-
-  let rarityTx = 1;
-  for (let rarityType of raritys) {
-    console.log(`${formatteDate()}: =====Sending rarity ${rarityTx} of ${raritys.length}===`)
-    console.log(`${formatteDate()}: ===== Rarity ID: ${rarityType.uri}  ===`)
-
-    const tokenAccountPDA = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      rarityType.mint.mint,
-      wallet.publicKey,
-    );
-
-    const sendTokenTx = await sendToken({
-      connection: connection,
-      wallet: wallet,
-      amount: 1,
-      destination: WALLET_PACKAGE,
-      mint: rarityType.mint.mint,
-      source: tokenAccountPDA
-
-    })
-
-    const blockhash = await connection.getLatestBlockhash()
-
-    const combinedTokenSendTx = Transaction.fromCombined(sendTokenTx, { blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight, feePayer: wallet.publicKey })
-    await wallet.signTransaction(combinedTokenSendTx)
-    const tokenSent = await confirmTransactions(connection, combinedTokenSendTx)
-    console.log(`${formatteDate()}: TokenSent OK: ${tokenSent}`)
-
-    rarityTx++;
-
-  }
-
-  console.log("===================================")
-  console.log("=====++++++FINISHED RARITYS+++++===")
-  console.log("===================================")
-  console.log(`=======${formatteDate()} ========`)
 
   // Get Only Commons
   const commonOnly = mintedInfo.filter(a => {
     return a.type == '1'
   });
 
-  console.log("===================================")
-  console.log("==========SENT RESERVED============")
-  console.log("===================================")
-
-
-  console.log(`${formatteDate()}: Common Reserved #: ${commonOnly.length}`)
+  console.log(`${formatteDate()}: Master Copies #: ${commonOnly.length}`)
   let commons = 1;
+  const editionMint = []
+
   for (let reservedSingle of commonOnly) {
     console.log(`${formatteDate()}: ======= Minting Edition for Asset ${commons} of ${commonOnly.length} ====== `)
     console.log(`${formatteDate()}: ======= Common Id: ${reservedSingle.uri} =========== `)
 
-    if (reservedSingle.reserved > 0) {
+    if (reservedSingle.maxSupply - reservedSingle.reserved > 0) {
+      const copiesToMint = reservedSingle.maxSupply - reservedSingle.reserved
 
-      const editionMint = []
       let reservedEdition = 1;
-      for (let i = 0; i < reservedSingle.reserved; i++) {
-
+      for (let i = 0; i < copiesToMint; i++) {
+        console.log(`${formatteDate()}: Copy: ${reservedEdition} of ${copiesToMint}`)
 
         const mintEditions = await mintEditionFromMaster(
           connection,
           wallet,
           reservedSingle.mint.mint,
           STORE_OWNER,
-          reservedEdition
+          1
         );
 
         const blockhashEdition = await connection.getLatestBlockhash()
@@ -216,143 +168,42 @@ async function main() {
 
         console.log(`${formatteDate()}: Minted Edition OK`)
 
-        /// Sending Edition 
-        const tokenAccountPDA = await Token.getAssociatedTokenAddress(
-          ASSOCIATED_TOKEN_PROGRAM_ID,
-          TOKEN_PROGRAM_ID,
-          mintEditions.mint,
-          wallet.publicKey,
-        );
-
-        const sendTokenTx = await sendToken({
-          connection: connection,
-          wallet: wallet,
-          amount: 1,
-          destination: WALLET_PACKAGE,
-          mint: mintEditions.mint,
-          source: tokenAccountPDA
-
-        });
 
 
-
-        const blockhashSentEdition = await connection.getLatestBlockhash()
-
-        const combinedSentTokenTx = Transaction.fromCombined(sendTokenTx, {
-          blockhash: blockhashSentEdition.blockhash,
-          lastValidBlockHeight: blockhashSentEdition.lastValidBlockHeight,
-          feePayer: wallet.publicKey
-        })
-
-        await wallet.signTransaction(combinedSentTokenTx)
-        const sentEditiontxId = await confirmTransactions(connection, combinedSentTokenTx)
-
-        console.log(`${formatteDate()}: Reserved OK ${reservedEdition} of ${reservedSingle.reserved} `)
-
-
-        await sleep(5000)
-
+        editionMint.push({mintEditions, reservedSingle})
 
         reservedEdition++;
-
       }
     }
 
     commons++;
 
   }
-
-
   console.log("===================================")
-  console.log("=======SENT RESERVED OK============")
+  console.log("=======  SELL START  ===========")
   console.log("===================================")
+  
+  let editionsToSell = 1;
+  for (let sellEdition of editionMint) {
+    console.log("=============================")
+    console.log(`${formatteDate()}: Copies to sell: ${editionsToSell} of ${editionMint.length}`)
+
+    const tokenAccount = await getAtaForMint(sellEdition.mintEditions.mint,wallet.publicKey)
 
 
-  console.log("===================================")
-  console.log("=======PRE AUCTION START===========")
-  console.log("===================================")
+    await sellNftTransaction(
+      connection,
+      wallet,
+      sellEdition.reservedSingle.price,
+      sellEdition.mintEditions,
+      tokenAccount[0],
+    );
 
-
-  const preAuctionInfo: AuctionPreStage[] = []
-  // Create Auction
-  let preAuctionIndex = 1
-  for (let preAuc of commonOnly) {
-
-    console.log(`${formatteDate()}: ======= PreAuction ${preAuctionIndex} of ${commonOnly.length} ====== `)
-    console.log(`${formatteDate()}: ======= Common Id: ${preAuc.uri} =========== `)
-    if (preAuc.reserved < preAuc.maxSupply && preAuc.type === '1') {
-      const preAuctionResult = await preAuctionBatch(connection, wallet, preAuc)
-      preAuctionInfo.push(preAuctionResult)
-    }
-
-    preAuctionIndex++;
+    editionsToSell++;
 
   }
 
-
-  // Validate Auctions
-  let validateTransactions = 1;
-  for (let preAuctionIndividual of preAuctionInfo) {
-
-    console.log(`${formatteDate()}: ======= Validating Auction ${validateTransactions} of ${preAuctionInfo.length} ====== `)
-    console.log(`${formatteDate()}: ======= Common Id: ${preAuctionIndividual.uri} =========== `)
-
-    if (preAuctionIndividual) {
-      if (preAuctionIndividual.minted.type === '1') {
-        const validateAuction = await validateAuctionBatch(connection, wallet, preAuctionIndividual.vault, preAuctionIndividual.minted, preAuctionIndividual.addedToken, preAuctionIndividual.auctionManager, preAuctionIndividual.minted.maxSupply, preAuctionIndividual.reserved)
-        console.log("Validate OK")
-        const startAuction = await startAuctionBatch(connection, wallet, preAuctionIndividual.auction, preAuctionIndividual.auctionManager)
-
-        const blockhash = await connection.getLatestBlockhash()
-        const combinedValidate = Transaction.fromCombined([validateAuction, startAuction], {
-          blockhash: blockhash.blockhash,
-          lastValidBlockHeight: blockhash.lastValidBlockHeight,
-          feePayer: wallet.publicKey
-        })
-
-        await wallet.signTransaction(combinedValidate)
-        const validateAndInit = await confirmTransactions(connection, combinedValidate)
-
-        console.log(`${formatteDate()}: Validate and Init Tx: ${validateAndInit}`)
-
-
-
-
-      }
-    }
-
-    validateTransactions++;
-  }
-
-  // if (validateTransactions.length > 0) {
-  //   if (validateTransactions !== undefined) {
-  //     await wallet.signAllTransactions(validateTransactions)
-
-  //     const validateTxId = []
-  //     try {
-
-  //       for (let tx of validateTransactions) {
-  //         console.log("ValidateTx", tx)
-  //         const txId = await connection.sendRawTransaction(tx.serialize());
-
-  //         validateTxId.push(txId)
-  //       }
-
-  //       console.log("Validate Transactions OK")
-
-  //     } catch (e) {
-  //       console.log(e)
-
-  //     }
-  //   }
-  // }
-
-
-
-
-  // // Determine who pays for the fees
-
-  console.log(`${formatteDate()} Success`)
+  console.log(`Finish OK`)
 
 }
 

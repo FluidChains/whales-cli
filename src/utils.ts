@@ -7,14 +7,15 @@ import os from 'os';
 import fs from 'mz/fs';
 import path from 'path';
 import yaml from 'yaml';
-import {Connection, Keypair, sendAndConfirmRawTransaction} from '@solana/web3.js';
+import {Connection, Keypair, PublicKey, sendAndConfirmRawTransaction} from '@solana/web3.js';
 import { Transaction } from './sdk/programs/core';
 import { BatchMint, MetadataJson, TransactionsBatchParams } from './types';
 
 import axios, { AxiosResponse } from "axios";
-import { MAX_RETRIES } from './ids';
+import { AUCTION_HOUSE_PROGRAM_ID, MAX_RETRIES, SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID, TOKEN_PROGRAM_ID } from './ids';
 import base58 from 'bs58';
 import moment from 'moment';
+import BN from 'bn.js';
 
 
 /**
@@ -204,3 +205,38 @@ export class TransactionsBatch {
   export function formatteDate () {
     return (moment(new Date())).format('YYYY-MM-DD HH:mm:ss')
   }
+
+  export async function getAuctionHouseTradeState (
+    auctionHouse: PublicKey,
+    wallet: PublicKey,
+    tokenAccount: PublicKey,
+    treasuryMint: PublicKey,
+    tokenMint: PublicKey,
+    tokenSize: BN,
+    buyPrice: BN,
+  ): Promise<[PublicKey, number]> {
+    return await PublicKey.findProgramAddress(
+      [
+        Buffer.from('auction_house'),
+        wallet.toBuffer(),
+        auctionHouse.toBuffer(),
+        tokenAccount.toBuffer(),
+        treasuryMint.toBuffer(),
+        tokenMint.toBuffer(),
+        buyPrice.toBuffer('le', 8),
+        tokenSize.toBuffer('le', 8),
+      ],
+      AUCTION_HOUSE_PROGRAM_ID,
+    );
+  };
+
+  export const getAtaForMint = async (
+    mint: PublicKey,
+    buyer: PublicKey,
+  ): Promise<[PublicKey, number]> => {
+    return await PublicKey.findProgramAddress(
+      [buyer.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+    );
+  };
+  
