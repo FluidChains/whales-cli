@@ -20,9 +20,6 @@ import { sellNftTransaction } from './sdk/actions/auction-house/sellNft';
 
 
 
-const keypair: string = './mainnet.json'
-
-
 
 async function main() {
   console.log(`${formatteDate()}: Starting to mint`);
@@ -44,7 +41,7 @@ async function main() {
   let completeJSON: BatchMint[];
   try {
     validateJson = JSON.parse(rawdata) as BatchMint[];
-    if (validateJson.length > 200) throw new Error("Limit batch exceded: Max 25");
+    if (validateJson.length > 200) throw new Error("Limit batch exceded: Max 200");
     const retrieveData = await retrieveMetadata(validateJson);
 
     completeJSON = retrieveData;
@@ -170,7 +167,7 @@ async function main() {
 
 
 
-        editionMint.push({mintEditions, reservedSingle})
+        editionMint.push({ mintEditions, reservedSingle })
 
         reservedEdition++;
       }
@@ -179,16 +176,17 @@ async function main() {
     commons++;
 
   }
+
   console.log("===================================")
   console.log("=======  SELL START  ===========")
   console.log("===================================")
-  
+
   let editionsToSell = 1;
   for (let sellEdition of editionMint) {
     console.log("=============================")
     console.log(`${formatteDate()}: Copies to sell: ${editionsToSell} of ${editionMint.length}`)
 
-    const tokenAccount = await getAtaForMint(sellEdition.mintEditions.mint,wallet.publicKey)
+    const tokenAccount = await getAtaForMint(sellEdition.mintEditions.mint, wallet.publicKey)
 
 
     await sellNftTransaction(
@@ -203,6 +201,225 @@ async function main() {
 
   }
 
+  console.log("===================================")
+  console.log("=======  PACKAGES MINT  ===========")
+  console.log("===================================")
+
+  // Get Only Commons
+  const tokenPackages = mintedInfo.filter(a => {
+    return a.type == '4' || a.type == '5' || a.type == '6'
+  });
+
+  console.log(`${formatteDate()}: Packages Copies #: ${tokenPackages.length}`)
+  let packages = 1;
+  const packagesEditionMint = []
+
+  for (let packageSingle of tokenPackages) {
+    console.log(`${formatteDate()}: ======= Minting Packages ${packages} of ${tokenPackages.length} ====== `)
+    console.log(`${formatteDate()}: ======= Package Id: ${packageSingle.uri} =========== `)
+
+    const copiesToMint = packageSingle.maxSupply
+
+    let packageMintCo = 1;
+    for (let i = 0; i < copiesToMint; i++) {
+      console.log(`${formatteDate()}: Copy: ${packageMintCo} of ${copiesToMint}`)
+
+      const mintEditions = await mintEditionFromMaster(
+        connection,
+        wallet,
+        packageSingle.mint.mint,
+        WALLET_PACKAGE,
+        1
+      );
+
+      const blockhashEdition = await connection.getLatestBlockhash()
+
+
+      const combinedEditionTx = Transaction.fromCombined(mintEditions.txBatch.toTransactions(), {
+        blockhash: blockhashEdition.blockhash,
+        lastValidBlockHeight: blockhashEdition.lastValidBlockHeight,
+        feePayer: wallet.publicKey
+      })
+      combinedEditionTx.partialSign(...mintEditions.txBatch.signers);
+
+      await wallet.signTransaction(combinedEditionTx)
+      const combinedEditionTxId = await confirmTransactions(connection, combinedEditionTx)
+      const blockhashReservedCon = await connection.getLatestBlockhash()
+      const reservedEdiBase58 = base58.encode(combinedEditionTx.signature)
+      const confirmedEditionCpyTx = await connection.confirmTransaction({
+        blockhash: blockhashReservedCon.blockhash,
+        lastValidBlockHeight: blockhashReservedCon.lastValidBlockHeight,
+        signature: reservedEdiBase58
+      })
+
+      console.log(`${formatteDate()}: Package Edition Confirm ${combinedEditionTxId}`)
+
+      console.log(`${formatteDate()}: Package Edition OK`)
+
+
+
+      packagesEditionMint.push({ mintEditions, packageSingle })
+
+      packageMintCo++;
+
+    }
+
+    commons++;
+
+  }
+
+  console.log("===================================")
+  console.log("=======  SELL PACKAGES  ===========")
+  console.log("===================================")
+
+  let editionsPackagesToSell = 1;
+  for (let packageEdition of packagesEditionMint)
+  {
+    console.log("=============================")
+    console.log(`${formatteDate()}: Copies packages to sell: ${editionsPackagesToSell} of ${packagesEditionMint.length}`)
+
+    const tokenAccount = await getAtaForMint(packageEdition.mintEditions.mint, wallet.publicKey)
+
+
+    await sellNftTransaction(
+      connection,
+      wallet,
+      packageEdition.packageSingle.price,
+      packageEdition.mintEditions,
+      tokenAccount[0],
+    );
+
+    
+
+    editionsPackagesToSell++;
+
+  }
+
+  console.log("===================================")
+  console.log("===  SENDING TO WALLET PACKAGE  ===")
+  console.log("===================================")
+
+  let masterEditionToWP = 1;
+
+  for (let masterEditionToken of mintedInfo)
+  {
+
+    console.log("=============================")
+    console.log(`${formatteDate()}: Sending MasterEdition to Wallet Package: ${WALLET_PACKAGE.toBase58()} || ${masterEditionToWP} of ${mintedInfo.length}`)
+
+
+    const tokenAccountPDA = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      masterEditionToken.mint.mint,
+      wallet.publicKey,
+    );
+
+    const sendTokenTx = await sendToken({
+      connection: connection,
+      wallet: wallet,
+      amount: 1,
+      destination: WALLET_PACKAGE,
+      mint: masterEditionToken.mint.mint,
+      source: tokenAccountPDA
+
+    });
+
+    const blockhashEdition = await connection.getLatestBlockhash()
+
+
+    const combinedEditionTx = Transaction.fromCombined(sendTokenTx, {
+      blockhash: blockhashEdition.blockhash,
+      lastValidBlockHeight: blockhashEdition.lastValidBlockHeight,
+      feePayer: wallet.publicKey
+    })
+
+    await wallet.signTransaction(combinedEditionTx)
+    const combinedEditionTxId = await confirmTransactions(connection, combinedEditionTx)
+    const blockhashReservedCon = await connection.getLatestBlockhash()
+    const reservedEdiBase58 = base58.encode(combinedEditionTx.signature)
+    const confirmedEditionCpyTx = await connection.confirmTransaction({
+      blockhash: blockhashReservedCon.blockhash,
+      lastValidBlockHeight: blockhashReservedCon.lastValidBlockHeight,
+      signature: reservedEdiBase58
+    })
+
+    console.log(`${formatteDate()}: MasterEdition Sent Confirm ${confirmedEditionCpyTx}`)
+
+    console.log(`${formatteDate()}: Master Edition Sent OK`)
+
+
+    masterEditionToWP++;
+  }
+
+  console.log("===================================")
+  console.log("==========  PACKAGE INFO  =========")
+  console.log("===================================")
+  console.log(`******** SAVE THIS INFO ON YOUR RECORDS TO CONFIGURE THE API`)
+  
+  for (let tokenPackage of tokenPackages)
+  {
+
+    let packageType = '';
+
+    switch (tokenPackage.type) {
+      case '4':
+        packageType = 'COMMON'
+        break;
+      case '5':
+        packageType = 'RARE'
+        
+        break;
+      case '6':
+        packageType = 'LEGENDARY'
+        
+        break;
+        
+      default:
+        break;
+    }
+    
+    console.log(`${formatteDate()}: Package Type: ${packageType}`)
+    console.log(`${formatteDate()}: Mint Address: ${tokenPackage.mint.mint.toBase58()}`)
+    console.log(`=======================================================================`)
+
+  }
+
+  const collectionPackage = mintedInfo.filter(a => {
+    return a.type == '7' 
+  });
+
+  console.log("===================================")
+  console.log("========  COLLECTION INFO  ========")
+  console.log("===================================")
+  console.log(`******** SAVE THIS INFO ON YOUR RECORDS TO CONFIGURE THE API`)
+  
+  for (let collectionToken of collectionPackage)
+  {
+
+    let packageType = '';
+
+    switch (collectionToken.type) {
+      case '7':
+        packageType = 'Collection Token'
+        break;
+      default:
+        break;
+    }
+    
+    console.log(`${formatteDate()}: Token Type: ${packageType}`)
+    console.log(`${formatteDate()}: Mint Address: ${collectionToken.mint.mint.toBase58()}`)
+    console.log(`=======================================================================`)
+
+  }
+
+  console.log(`${formatteDate()}: `)
+
+
+
+
+  //Finish send Master Edition  
+  console.log(`Finish send Master Edition`)
   console.log(`Finish OK`)
 
 }

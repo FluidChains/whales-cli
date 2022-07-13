@@ -77,6 +77,17 @@ export async function mintNFT({ connection, wallet, uri, maxSupply, metadata, mi
         typeNFT.value = attributeCom.value
       }
     }
+
+    let supply;
+
+    if(typeNFT.value == '4' || typeNFT.value == '5' || typeNFT.value == '6' || typeNFT.value == '7')
+    {
+      supply = null
+    } else {
+      supply = new BN(maxSupply)
+    } 
+
+    console.log(`TypeL ${supply}`)
    
 
     const creatorsData = metadata.creators.reduce<Creator[]>((memo, { address, share }) => {
@@ -132,7 +143,7 @@ export async function mintNFT({ connection, wallet, uri, maxSupply, metadata, mi
         updateAuthority: wallet.publicKey,
         mint: mint.publicKey,
         mintAuthority: wallet.publicKey,
-        maxSupply: maxSupply || maxSupply >= 0 ? new BN(maxSupply) : null,
+        maxSupply: supply,
       },
     );
 
