@@ -87,7 +87,6 @@ export async function mintNFT({ connection, wallet, uri, maxSupply, metadata, mi
       supply = new BN(maxSupply)
     } 
 
-    console.log(`TypeL ${supply}`)
    
 
     const creatorsData = metadata.creators.reduce<Creator[]>((memo, { address, share }) => {

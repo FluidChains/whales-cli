@@ -4,19 +4,16 @@ import {
 } from './ywhales';
 
 import fs from 'mz/fs';
-import { batchFile, STORE_OWNER, WALLET_PACKAGE, WRAPPED_SOL_MINT } from './ids';
-import { AuctionPreStage, BatchMint, MintedResponse } from './types';
-import { confirmTransactions, formatteDate, getAtaForMint, getPayer, retrieveMetadata, sleep } from './utils';
-import { Connection } from './sdk/actions/Connection';
+import { batchFile, STORE_OWNER, WALLET_PACKAGE } from './ids';
+import { BatchMint, MintedResponse } from './types';
+import { confirmTransactions, formatteDate, getAtaForMint, retrieveMetadata } from './utils';
 import { Transaction } from './sdk/programs/core';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, MintLayout, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { mintEditionFromMaster, mintNFT, sendToken } from './services/mint.service';
-import { Keypair, sendAndConfirmRawTransaction } from '@solana/web3.js';
 import { NodeWallet } from './sdk/actions/wallet';
 import base58 from 'bs58';
-import { preAuctionBatch, startAuctionBatch, validateAuctionBatch } from './services/auction.service';
-import moment from 'moment';
 import { sellNftTransaction } from './sdk/actions/auction-house/sellNft';
+import { updateMetadata } from './sdk/actions/updateMetadata';
 
 
 
@@ -218,6 +215,40 @@ async function main() {
     console.log(`${formatteDate()}: ======= Minting Packages ${packages} of ${tokenPackages.length} ====== `)
     console.log(`${formatteDate()}: ======= Package Id: ${packageSingle.uri} =========== `)
 
+
+    console.log(`${formatteDate()}: ======= Updating Authority ============== `)
+
+    const blockhashReservedConUpdateMe = await connection.getLatestBlockhash()
+
+    const updateMetadataTx = await updateMetadata({
+      connection: connection,
+      wallet: wallet,
+      editionMint: packageSingle.mint.mint,
+      newUpdateAuthority: WALLET_PACKAGE
+    });
+
+    updateMetadataTx.lastValidBlockHeight = blockhashReservedConUpdateMe.lastValidBlockHeight;
+    updateMetadataTx.recentBlockhash = blockhashReservedConUpdateMe.blockhash;
+
+    await wallet.signTransaction(updateMetadataTx)
+
+
+   const combinedEditionTxIdUpMeta = await confirmTransactions(connection, updateMetadataTx)
+      const reservedEdiBase58 = base58.encode(updateMetadataTx.signature)
+      const confirmedEditionCpyTx = await connection.confirmTransaction({
+        blockhash: blockhashReservedConUpdateMe.blockhash,
+        lastValidBlockHeight: blockhashReservedConUpdateMe.lastValidBlockHeight,
+        signature: reservedEdiBase58
+      })
+
+
+
+
+    console.log(`${formatteDate()}: ======= Authority updated to  ${WALLET_PACKAGE.toBase58()} ============== `)
+
+
+
+
     const copiesToMint = packageSingle.maxSupply
 
     let packageMintCo = 1;
@@ -306,7 +337,42 @@ async function main() {
 
     console.log("=============================")
     console.log(`${formatteDate()}: Sending MasterEdition to Wallet Package: ${WALLET_PACKAGE.toBase58()} || ${masterEditionToWP} of ${mintedInfo.length}`)
+    
+    if (masterEditionToken.type === '7') {
 
+      console.log(`${formatteDate()}: ======= Updating Collection Authority ============== `)
+
+    const blockhashReservedConUpdateMe = await connection.getLatestBlockhash()
+
+    const updateMetadataTx = await updateMetadata({
+      connection: connection,
+      wallet: wallet,
+      editionMint: masterEditionToken.mint.mint,
+      newUpdateAuthority: WALLET_PACKAGE
+    });
+
+    updateMetadataTx.lastValidBlockHeight = blockhashReservedConUpdateMe.lastValidBlockHeight;
+    updateMetadataTx.recentBlockhash = blockhashReservedConUpdateMe.blockhash;
+
+    await wallet.signTransaction(updateMetadataTx)
+
+
+   const combinedEditionTxIdUpMeta = await confirmTransactions(connection, updateMetadataTx)
+      const reservedEdiBase58 = base58.encode(updateMetadataTx.signature)
+      const confirmedEditionCpyTx = await connection.confirmTransaction({
+        blockhash: blockhashReservedConUpdateMe.blockhash,
+        lastValidBlockHeight: blockhashReservedConUpdateMe.lastValidBlockHeight,
+        signature: reservedEdiBase58
+      })
+
+
+
+
+    console.log(`${formatteDate()}: ======= Collection authority updated to  ${WALLET_PACKAGE.toBase58()} ============== `)
+
+
+
+    }
 
     const tokenAccountPDA = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
