@@ -23,8 +23,14 @@ export const sendTransaction = async ({
   signers = [],
   options,
 }: SendTransactionParams): Promise<string> => {
-  let tx = Transaction.fromCombined(txs, { feePayer: wallet.publicKey });
-  tx.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+  const blockhash =  await connection.getLatestBlockhash();
+
+
+  let tx = Transaction.fromCombined(txs, { 
+    feePayer: wallet.publicKey,
+    blockhash: blockhash.blockhash,
+    lastValidBlockHeight: blockhash.lastValidBlockHeight
+   });
 
   if (signers.length) {
     tx.partialSign(...signers);

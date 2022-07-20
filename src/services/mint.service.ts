@@ -16,6 +16,9 @@ import { EditionMarker } from '../sdk/programs/metadata/EditionMarker';
 import { Edition } from '../sdk/programs/metadata/Edition';
 import { MintNewEditionFromMasterEditionViaToken } from '../sdk/programs/metadata/MintNewEditionFromMasterEditionViaToken';
 import { CreateAssociatedTokenAccount } from '../sdk/transactions';
+import { createSignMetadataInstruction } from '@metaplex-foundation/mpl-token-metadata';
+import { MetadataProgram } from 'src/sdk/programs/metadata/MetadataProgram';
+import { METADATA_PROGRAM_ID } from 'src/ids';
 
 
 export  async  function lookup(url: string): Promise<MetadataJson> {
@@ -145,6 +148,21 @@ export async function mintNFT({ connection, wallet, uri, maxSupply, metadata, mi
         maxSupply: supply,
       },
     );
+    
+    // Sign Metadata to allow collections
+
+    const signMetadataTx = new Transaction({
+      blockhash: blockhash.blockhash,
+      lastValidBlockHeight: blockhash.lastValidBlockHeight
+    })
+    const signMetadata =  createSignMetadataInstruction({
+      creator: wallet.publicKey,
+      metadata: metadataPDA
+    },
+    new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'));
+
+    signMetadataTx.add(signMetadata)
+
 
 
     txBatch.addTransaction(createMintTx)
@@ -152,6 +170,7 @@ export async function mintNFT({ connection, wallet, uri, maxSupply, metadata, mi
     txBatch.addTransaction(createAssociatedTokenAccountTx)
     txBatch.addTransaction(mintToTx)
     txBatch.addTransaction(masterEditionTx)
+    txBatch.addTransaction(signMetadataTx)
 
  
     return {transactionBatch: txBatch, mint: mint.publicKey, recipient: recipient, metadata: metadataPDA, type: typeNFT.value };

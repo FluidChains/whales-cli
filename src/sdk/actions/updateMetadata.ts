@@ -1,11 +1,9 @@
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import { Wallet } from './wallet';
-import {
-  Metadata,
-  MetadataDataData,
-  UpdateMetadata,
-} from '@metaplex-foundation/mpl-token-metadata';
+
 import { sendTransaction } from './transactions';
+import { Metadata, MetadataDataData } from '../programs/metadata/Metadata';
+import { UpdateMetadata } from '../programs/metadata/UpdateMetadata';
 
 /** Parameters for {@link updateMetadata} **/
 export interface UpdateMetadataParams {
@@ -39,9 +37,13 @@ export const updateMetadata = async (
 ): Promise<Transaction> => {
   const metadata = await Metadata.getPDA(editionMint);
 
+  const blockhash =  await connection.getLatestBlockhash();
 
   const updateTx = new UpdateMetadata(
-    { feePayer: wallet.publicKey },
+    { feePayer: wallet.publicKey,
+      blockhash: blockhash.blockhash,
+      lastValidBlockHeight: blockhash.lastValidBlockHeight
+     },
     {
       metadata,
       updateAuthority: wallet.publicKey,
