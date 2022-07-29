@@ -24,7 +24,7 @@ export const sellNftTransaction = async (
 
 
     const auctionHouseId = await AuctionHouseProgram.findAuctionHouseAddress(STORE_OWNER, WRAPPED_SOL_MINT);
-    const auctionHouseAuthority = await AuctionHouseProgram.findAuctionHouseTreasuryAddress(auctionHouseId[0]);
+    const auctionHouseAuthority = wallet;
     const auctionHouseFeePayer = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouseId[0]);
 
     if (!wallet.publicKey || !nft) {
