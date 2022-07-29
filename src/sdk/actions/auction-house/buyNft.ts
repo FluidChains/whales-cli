@@ -5,11 +5,9 @@ import {
 } from "@solana/web3.js";
 import BN from "bn.js";
 
-import { AUCTION_HOUSE_AUTHORITY, AUCTION_HOUSE_FEE_PAYER, TOKEN_PROGRAM_ID, WRAPPED_SOL_MINT } from "../../../ids";
+import { TOKEN_PROGRAM_ID, WRAPPED_SOL_MINT } from "../../../ids";
 import { confirmTransactions, getAuctionHouseTradeState } from "../../../utils";
-import { AuctionHouseProgram } from "../../programs/auction-house/AuctionHouseProgram";
-import { createPrintBidReceiptInstruction } from "../../programs/auction-house/PrintBidReceipt";
-import { createBuyInstruction } from "../../programs/auction-house/Buy";
+import { AuctionHouseProgram } from "@holaplex/marketplace-js-sdk";
 import { TokenMetadataProgram } from "../../programs/token-metadata/TokenMetadataProgram";
 import { Connection } from "../Connection";
 
@@ -25,15 +23,17 @@ export default async function buyNftTransaction(
     console.log("nft: ", nft);
     console.log("listing: ", listing);
     console.log("ah: ", ah);
-    const auctionHouseProgram = new AuctionHouseProgram();
-    const auctionProgramId = auctionHouseProgram.PUBKEY;
+    const auctionProgramId = AuctionHouseProgram.PUBKEY;
     console.log("auctionProgramId: ", auctionProgramId);
     const tokenMetadataProgram = new TokenMetadataProgram();
 
 
     const auctionHouse = ah;
-    const authority = AUCTION_HOUSE_AUTHORITY;
-    const auctionHouseFeeAccount = AUCTION_HOUSE_FEE_PAYER;
+
+    const authority = buyerPublicKey;
+    const auctionHouseFeePayer = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouse);
+
+    const auctionHouseFeeAccount = auctionHouseFeePayer[0];
     const treasuryMint = WRAPPED_SOL_MINT;
 
     const tokenMint = new PublicKey(nft.mint);
@@ -49,7 +49,7 @@ export default async function buyNftTransaction(
     const [metadata] = await tokenMetadataProgram.findMetadataAccount(tokenMint);
 
     const [escrowPaymentAccount, escrowPaymentBump] =
-        await auctionHouseProgram.findEscrowPaymentAccountAddress(
+        await AuctionHouseProgram.findEscrowPaymentAccountAddress(
             auctionHouse,
             buyerPublicKey
         );
@@ -66,7 +66,7 @@ export default async function buyNftTransaction(
     );
 
     const [bidReceipt, bidReceiptBump] =
-        await auctionHouseProgram.findBidReceiptAddress(buyerTradeState);
+        await AuctionHouseProgram.findBidReceiptAddress(buyerTradeState);
 
     console.log("BUY NFT")
     console.log("ARGS")
@@ -128,12 +128,12 @@ export default async function buyNftTransaction(
     };
 
     console.log("publicBuyInstructionArgs: ", publicBuyInstructionArgs);
-    const publicBuyInstruction = createBuyInstruction(
+    const publicBuyInstruction = AuctionHouseProgram.instructions.createBuyInstruction(
         publicBuyInstructionAccounts,
         publicBuyInstructionArgs
     );
 
-    const printBidReceiptInstruction = createPrintBidReceiptInstruction(
+    const printBidReceiptInstruction = AuctionHouseProgram.instructions.createPrintBidReceiptInstruction(
         printBidReceiptAccounts,
         printBidReceiptArgs
     );

@@ -34,22 +34,6 @@ export const AUCTION_HOUSE_PROGRAM_ID = new PublicKey(
   "hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk"
 );
 
-export const AUCTION_HOUSE = new PublicKey(
-  "GvH97dakw2FsJE8RHndfTUuMZKcSJX6cjvn66Ax9hEJ7"
-);
-
-export const AUCTION_HOUSE_FEE_PAYER = new PublicKey(
-  "8Lg9ku7YRsNKnWgMkDVGmE6cgbF3ok6oJfXztRFoAVM4"
-);
-
-export const AUCTION_HOUSE_TREASURY = new PublicKey(
-  "5ExvxcvkzQZeATdSy2oAEyfrbYP69nohmxPesvidYLGe"
-);
-
-export const AUCTION_HOUSE_AUTHORITY = new PublicKey(
-  "8B3MJVBuWPKy7VjSawd2mgTXRNRbc6zVByoR2ifiEphT"
-);
-
 export const WRAPPED_SOL_MINT = new PublicKey(
   'So11111111111111111111111111111111111111112',
 );

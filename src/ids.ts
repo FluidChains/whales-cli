@@ -31,25 +31,25 @@ export const STORE_OWNER = new PublicKey(
 );
 
 
-export const AUCTION_HOUSE_PROGRAM_ID = new PublicKey(
-  "hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk"
-);
+// export const AUCTION_HOUSE_PROGRAM_ID = new PublicKey(
+//   "hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk"
+// );
 
-export const AUCTION_HOUSE = new PublicKey(
-  "CDByH24u5jioHVuupQeCVtHWhbge1gxQx1BHQgQQRaL"
-);
+// export const AUCTION_HOUSE = new PublicKey(
+//   "CDByH24u5jioHVuupQeCVtHWhbge1gxQx1BHQgQQRaL"
+// );
 
-export const AUCTION_HOUSE_FEE_PAYER = new PublicKey(
-  "DpjQNASFoVyN5Erg6SanKoAYSicPc7Hug7XgpVBtirqa"
-);
+// export const AUCTION_HOUSE_FEE_PAYER = new PublicKey(
+//   "DpjQNASFoVyN5Erg6SanKoAYSicPc7Hug7XgpVBtirqa"
+// );
 
-export const AUCTION_HOUSE_TREASURY = new PublicKey(
-  "BbEFAb7tsyhJxuHzFsY1y6c7y23KXSSXHcHbactGqnTp"
-);
+// export const AUCTION_HOUSE_TREASURY = new PublicKey(
+//   "BbEFAb7tsyhJxuHzFsY1y6c7y23KXSSXHcHbactGqnTp"
+// );
 
-export const AUCTION_HOUSE_AUTHORITY = new PublicKey(
-  "2W5E5DF5r296bGvCqNCQs7jrSoaenLW8SMPUuZGCVXHY"
-);
+// export const AUCTION_HOUSE_AUTHORITY = new PublicKey(
+//   "2W5E5DF5r296bGvCqNCQs7jrSoaenLW8SMPUuZGCVXHY"
+// );
 
 export const WRAPPED_SOL_MINT = new PublicKey(
   'So11111111111111111111111111111111111111112',

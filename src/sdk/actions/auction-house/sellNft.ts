@@ -1,6 +1,3 @@
-import { AuctionHouseProgram } from '../../programs/auction-house/AuctionHouseProgram';
-import { createSellInstruction } from '../../programs/auction-house/Sell';
-
 import {
     Connection,
     Transaction,
@@ -8,12 +5,12 @@ import {
     LAMPORTS_PER_SOL,
     SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
-import { createPrintListingReceiptInstruction } from '../../programs/auction-house/PrintListingReceipt';
 import { TokenMetadataProgram } from '../../programs/token-metadata/TokenMetadataProgram';
-import { confirmTransactions,  formatteDate,  getAuctionHouseTradeState } from '../../../utils';
-import { AUCTION_HOUSE, AUCTION_HOUSE_AUTHORITY, AUCTION_HOUSE_FEE_PAYER, WRAPPED_SOL_MINT } from '../../../ids';
+import { confirmTransactions,  formatteDate } from '../../../utils';
+import { STORE_OWNER, WRAPPED_SOL_MINT } from '../../../ids';
 import { Wallet } from '../wallet';
 import BN from 'bn.js';
+import { AuctionHouseProgram } from "@holaplex/marketplace-js-sdk"
 
 export const sellNftTransaction = async (
     connection: Connection,
@@ -22,20 +19,21 @@ export const sellNftTransaction = async (
     nft: any,
     tokenAccount: PublicKey
 ) => {
-    const auctionHouseProgram = new AuctionHouseProgram();
     const tokenMetadataProgram = new TokenMetadataProgram();
 
-    const auctionHouseId = AUCTION_HOUSE;
-    const auctionHouseAuthority = AUCTION_HOUSE_AUTHORITY;
-    const auctionHouseFeePayer = AUCTION_HOUSE_FEE_PAYER;
+
+
+    const auctionHouseId = await AuctionHouseProgram.findAuctionHouseAddress(STORE_OWNER, WRAPPED_SOL_MINT);
+    const auctionHouseAuthority = await AuctionHouseProgram.findAuctionHouseTreasuryAddress(auctionHouseId[0]);
+    const auctionHouseFeePayer = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouseId[0]);
 
     if (!wallet.publicKey || !nft) {
         return;
     }
     const buyerPrice = Number(amount) * LAMPORTS_PER_SOL;
-    const auctionHouse = auctionHouseId;
-    const authority = auctionHouseAuthority;
-    const auctionHouseFeeAccount = auctionHouseFeePayer;
+    const auctionHouse = auctionHouseId[0];
+    const authority = auctionHouseAuthority[0];
+    const auctionHouseFeeAccount = auctionHouseFeePayer[0];
     const treasuryMint = WRAPPED_SOL_MINT;
     const tokenMint = new PublicKey(nft.mint);
     const associatedTokenAccount = tokenAccount;
@@ -47,7 +45,7 @@ export const sellNftTransaction = async (
     console.log(`${formatteDate()}: buyPrice: ${buyerPrice} `);
 
     const [sellerTradeState, tradeStateBump] =
-        await auctionHouseProgram.findTradeStateAddress(
+        await AuctionHouseProgram.findTradeStateAddress(
             wallet.publicKey,
             auctionHouse,
             associatedTokenAccount,
@@ -60,10 +58,10 @@ export const sellNftTransaction = async (
     const [metadata] = await tokenMetadataProgram.findMetadataAccount(tokenMint);
 
     const [programAsSigner, programAsSignerBump] =
-        await auctionHouseProgram.findAuctionHouseProgramAsSignerAddress();
+        await AuctionHouseProgram.findAuctionHouseProgramAsSignerAddress();
 
     const [freeTradeState, freeTradeBump] =
-        await auctionHouseProgram.findTradeStateAddress(
+        await AuctionHouseProgram.findTradeStateAddress(
             wallet.publicKey,
             auctionHouse,
             associatedTokenAccount,
@@ -95,14 +93,14 @@ export const sellNftTransaction = async (
         programAsSigner: programAsSigner,
     };
 
-    const sellInstruction = createSellInstruction(
-        sellInstructionAccounts,
-        sellInstructionArgs
+    const sellInstruction = AuctionHouseProgram.instructions.createSellInstruction(
+    sellInstructionAccounts,
+    sellInstructionArgs
     );
     const [receipt, receiptBump] =
-        await auctionHouseProgram.findListingReceiptAddress(sellerTradeState);
+        await AuctionHouseProgram.findListingReceiptAddress(sellerTradeState);
 
-    const printListingReceiptInstruction = createPrintListingReceiptInstruction(
+    const printListingReceiptInstruction = AuctionHouseProgram.instructions.createPrintListingReceiptInstruction(
         {
             receipt,
             bookkeeper: wallet.publicKey,

@@ -8,13 +8,9 @@ import {
 import BN from "bn.js";
 
 import { concat } from "ramda";
-import { AUCTION_HOUSE_AUTHORITY, AUCTION_HOUSE_FEE_PAYER, AUCTION_HOUSE_TREASURY, TOKEN_PROGRAM_ID, WRAPPED_SOL_MINT } from "../../../ids";
+import { TOKEN_PROGRAM_ID, WRAPPED_SOL_MINT } from "../../../ids";
 import { confirmTransactions,  getAuctionHouseTradeState } from "../../../utils";
-import { AuctionHouseProgram } from "../../programs/auction-house/AuctionHouseProgram";
-import { createExecuteSaleInstruction } from "../../programs/auction-house/ExecuteSale";
-import { createPrintBidReceiptInstruction } from "../../programs/auction-house/PrintBidReceipt";
-import { createPrintPurchaseReceiptInstruction } from "../../programs/auction-house/PrintPurchaseReceipt";
-import { createBuyInstruction } from "../../programs/auction-house/Buy";
+import { AuctionHouseProgram, initMarketplaceSDK } from "@holaplex/marketplace-js-sdk";
 import { TokenMetadataProgram } from "../../programs/token-metadata/TokenMetadataProgram";
 
 export default async function executeNFTSale(
@@ -30,21 +26,25 @@ export default async function executeNFTSale(
     console.log("nft: ", nft);
     console.log("listing: ", listing);
     console.log("ah: ", ah);
-    const auctionHouseProgram = new AuctionHouseProgram();
-    const auctionProgramId = auctionHouseProgram.PUBKEY;
+    const auctionProgramId = AuctionHouseProgram.PUBKEY;
     console.log("auctionProgramId: ", auctionProgramId);
     const tokenMetadataProgram = new TokenMetadataProgram();
 
 
     const auctionHouse = ah;
-    const authority = AUCTION_HOUSE_AUTHORITY;
-    const auctionHouseFeeAccount = AUCTION_HOUSE_FEE_PAYER;
+
+    const authority = buyerPublicKey;
+    const auctionHouseFeePayer = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouse);
+    const auctionHouseTreasuryAcc = await AuctionHouseProgram.findAuctionHouseTreasuryAddress(auctionHouse)
+
+    
+    const auctionHouseFeeAccount = auctionHouseFeePayer[0];
     const treasuryMint = WRAPPED_SOL_MINT;
 
     const seller = new PublicKey(listing.seller);
     const tokenMint = new PublicKey(nft.mint);
 
-    const auctionHouseTreasury = AUCTION_HOUSE_TREASURY;
+    const auctionHouseTreasury = auctionHouseTreasuryAcc[0];
 
     const listingReceipt = new PublicKey(listing.address);
     const sellerPaymentReceiptAccount = new PublicKey(listing.seller);
@@ -60,7 +60,7 @@ export default async function executeNFTSale(
     const [metadata] = await tokenMetadataProgram.findMetadataAccount(tokenMint);
 
     const [escrowPaymentAccount, escrowPaymentBump] =
-        await auctionHouseProgram.findEscrowPaymentAccountAddress(
+        await AuctionHouseProgram.findEscrowPaymentAccountAddress(
             auctionHouse,
             buyerPublicKey
         );
@@ -77,7 +77,7 @@ export default async function executeNFTSale(
     );
 
     const [freeTradeState, freeTradeStateBump] =
-        await auctionHouseProgram.findTradeStateAddress(
+        await AuctionHouseProgram.findTradeStateAddress(
             seller,
             auctionHouse,
             tokenAccount,
@@ -88,19 +88,19 @@ export default async function executeNFTSale(
         );
 
     const [programAsSigner, programAsSignerBump] =
-        await auctionHouseProgram.findAuctionHouseProgramAsSignerAddress();
+        await AuctionHouseProgram.findAuctionHouseProgramAsSignerAddress();
 
     const [buyerReceiptTokenAccount] =
-        await auctionHouseProgram.findAssociatedTokenAccountAddress(
+        await AuctionHouseProgram.findAssociatedTokenAccountAddress(
             tokenMint,
             buyerPublicKey
         );
 
     const [bidReceipt, bidReceiptBump] =
-        await auctionHouseProgram.findBidReceiptAddress(buyerTradeState);
+        await AuctionHouseProgram.findBidReceiptAddress(buyerTradeState);
 
     const [purchaseReceipt, purchaseReceiptBump] =
-        await auctionHouseProgram.findPurchaseReceiptAddress(
+        await AuctionHouseProgram.findPurchaseReceiptAddress(
             sellerTradeState,
             buyerTradeState
         );
@@ -153,12 +153,18 @@ export default async function executeNFTSale(
     };
 
     const executeSaleInstructionArgs = {
-        escrowPaymentBump,
-        freeTradeStateBump,
-        programAsSignerBump,
-        buyerPrice,
+        escrowPaymentBump: escrowPaymentBump,
+        freeTradeStateBump: freeTradeStateBump,
+        programAsSignerBump: programAsSignerBump,
+        buyerPrice: buyerPrice,
         tokenSize: 1,
+        partialOrderSize: null,
+        partialOrderPrice: null
+        
+       
     };
+
+    const initSdk = initMarketplaceSDK(connection, wallet)
 
     console.log("Purchase Receipt")
     console.log("Args")
@@ -181,12 +187,13 @@ export default async function executeNFTSale(
         purchaseReceiptBump,
     };
 
-    const executeSaleInstruction = createExecuteSaleInstruction(
+
+    const executeSaleInstruction = AuctionHouseProgram.instructions.createExecuteSaleInstruction(
         executeSaleInstructionAccounts,
         executeSaleInstructionArgs
     );
 
-    const printPurchaseReceiptInstruction = createPrintPurchaseReceiptInstruction(
+    const printPurchaseReceiptInstruction = AuctionHouseProgram.instructions.createPrintPurchaseReceiptInstruction(
         printPurchaseReceiptAccounts,
         printPurchaseReceiptArgs
     );

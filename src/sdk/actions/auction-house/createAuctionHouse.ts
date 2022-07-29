@@ -1,8 +1,7 @@
 import { PublicKey, PublicKeyInitData, TransactionInstruction } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { Wallet } from '../wallet';
-import { createCreateAuctionHouseInstruction } from '../../programs/auction-house/CreateAuctionHouse';
-import { AuctionHouseProgram } from '../../programs/auction-house/AuctionHouseProgram';
+import { AuctionHouseProgram } from '@holaplex/marketplace-js-sdk';
 
 interface CreateAuctionHouseParams {
   wallet: Wallet;
@@ -25,7 +24,6 @@ export const createAuctionHouse = async (params: CreateAuctionHouseParams): Prom
     treasuryMint,
   } = params;
 
-  const auctionHouseProgram = new AuctionHouseProgram();
 
   const twdKey = treasuryWithdrawalDestination
     ? new PublicKey(treasuryWithdrawalDestination)
@@ -39,20 +37,20 @@ export const createAuctionHouse = async (params: CreateAuctionHouseParams): Prom
 
   const twdAta = tMintKey.equals(NATIVE_MINT)
     ? twdKey
-    : (await auctionHouseProgram.findAssociatedTokenAccountAddress(tMintKey, twdKey))[0];
+    : (await AuctionHouseProgram.findAssociatedTokenAccountAddress(tMintKey, twdKey))[0];
 
-  const [auctionHouse, bump] = await auctionHouseProgram.findAuctionHouseAddress(
+  const [auctionHouse, bump] = await AuctionHouseProgram.findAuctionHouseAddress(
     wallet.publicKey,
     tMintKey,
   );
 
-  const [feeAccount, feePayerBump] = await auctionHouseProgram.findAuctionHouseFeeAddress(auctionHouse);
+  const [feeAccount, feePayerBump] = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouse);
 
-  const [treasuryAccount, treasuryBump] = await auctionHouseProgram.findAuctionHouseTreasuryAddress(
+  const [treasuryAccount, treasuryBump] = await AuctionHouseProgram.findAuctionHouseTreasuryAddress(
     auctionHouse,
   );
 
-  return createCreateAuctionHouseInstruction(
+  return AuctionHouseProgram.instructions.createCreateAuctionHouseInstruction(
     {
         treasuryMint: tMintKey,
         payer: wallet.publicKey,
