@@ -10,13 +10,17 @@
     "author": "",
     "license": "MIT",
     "scripts": {
-        "start": "npx ts-node src/main.ts"
+        "start": "npx ts-node src/main.ts",
+        "create": "npx ts-node src/mainaction.ts"
     },
     "dependencies": {
+        "@holaplex/marketplace-js-sdk": "^0.2.6",
         "@metaplex-foundation/beet": "^0.2.0",
         "@metaplex-foundation/beet-solana": "^0.1.1",
         "@metaplex-foundation/mpl-core": "^0.6.1",
+        "@metaplex-foundation/mpl-token-metadata": "^2.2.2",
         "@solana/web3.js": "1.43.1",
+        "aws-sdk": "^2.1179.0",
         "borsh": "^0.7.0",
         "moment": "^2.29.3",
         "mz": "^2.7.0",
