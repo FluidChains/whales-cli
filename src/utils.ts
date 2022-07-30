@@ -16,6 +16,7 @@ import { AUCTION_HOUSE_PROGRAM_ID, MAX_RETRIES, SPL_ASSOCIATED_TOKEN_ACCOUNT_PRO
 import base58 from 'bs58';
 import moment from 'moment';
 import BN from 'bn.js';
+import { AccountLayout, MintLayout } from '@solana/spl-token';
 
 
 /**
@@ -239,4 +240,22 @@ export class TransactionsBatch {
       SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
     );
   };
+
+  export async function checkMinimumBalances(connection, wallet) {
+    let fees = 0;
+    const feeCalculator = await connection.getMinimumBalanceForRentExemption(MintLayout.span);
+    fees += await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+    fees += feeCalculator * 100; // wag
+    
+    let lamports = await connection.getBalance(wallet.publicKey);
+
+    if (lamports < fees) {
+      // If current balance is not enough to pay for fees, request an airdrop
+      return false
+    }
+    else {
+      return true
+    }
+
+  }
   

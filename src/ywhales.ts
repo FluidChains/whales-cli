@@ -62,12 +62,7 @@ import {
     let lamports = await connection.getBalance(payer.publicKey);
     if (lamports < fees) {
       // If current balance is not enough to pay for fees, request an airdrop
-      const sig = await connection.requestAirdrop(
-        payer.publicKey,
-        fees - lamports,
-      );
-      await connection.confirmTransaction(sig);
-      lamports = await connection.getBalance(payer.publicKey);
+      
     }
   
     console.log(
