@@ -22,12 +22,12 @@ export const METAPLEX_ID = new PublicKey(
 
 /* wallet Package */
 export const WALLET_PACKAGE = new PublicKey(
-  'BsfNMxeoxUwQCV1zb1h5x1S6WCXeSDkzWaHMspuUj5UB'
+  ""
 );
 
-/* metaplex program */
+/* Store owner - Main wallet */
 export const STORE_OWNER = new PublicKey(
-  "4CdmUDevy8V7bSYy5hDhZDHhF5agskDXusEfjjkFyWux"
+  ""
 );
 
 

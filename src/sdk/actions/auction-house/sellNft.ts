@@ -24,7 +24,7 @@ export const sellNftTransaction = async (
 
 
     const auctionHouseId = await AuctionHouseProgram.findAuctionHouseAddress(STORE_OWNER, WRAPPED_SOL_MINT);
-    const auctionHouseAuthority = wallet;
+    const auctionHouseAuthority = wallet.publicKey;
     const auctionHouseFeePayer = await AuctionHouseProgram.findAuctionHouseFeeAddress(auctionHouseId[0]);
 
     if (!wallet.publicKey || !nft) {
@@ -32,7 +32,7 @@ export const sellNftTransaction = async (
     }
     const buyerPrice = Number(amount) * LAMPORTS_PER_SOL;
     const auctionHouse = auctionHouseId[0];
-    const authority = auctionHouseAuthority[0];
+    const authority = auctionHouseAuthority;
     const auctionHouseFeeAccount = auctionHouseFeePayer[0];
     const treasuryMint = WRAPPED_SOL_MINT;
     const tokenMint = new PublicKey(nft.mint);
